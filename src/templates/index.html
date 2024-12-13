@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Notes App</title>
+    <style id="appStyles">
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #1a1a1a;
+        color: #e0e0e0;
+        display: flex;
+        height: 100dvh;
+        overflow: hidden;
+      }
+
+      .notes__list {
+        width: 300px;
+        background-color: #2a2a2a;
+        overflow-y: auto;
+        padding: 20px;
+        border-right: 1px solid #444;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+      }
+
+      .note {
+        display: block;
+        text-decoration: none;
+        color: #e0e0e0;
+        padding: 15px;
+        margin-bottom: 15px;
+        background-color: #333;
+        border-radius: 12px;
+        border-left: 4px solid transparent;
+        transition: all 0.3s ease;
+      }
+
+      .note:hover {
+        background-color: #444;
+        border-left-color: #007bff;
+      }
+
+      .note h4 {
+        margin-bottom: 5px;
+        color: #fff;
+      }
+
+      .date {
+        color: #aaa;
+      }
+
+      .full__note__list {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 30px;
+        background-color: #1a1a1a;
+        scroll-behavior: smooth;
+      }
+
+      .full__note {
+        padding: 25px;
+        border: 1px solid #444;
+        border-radius: 16px;
+        margin-bottom: 30px;
+        background-color: #2a2a2a;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        transition: box-shadow 0.3s ease;
+        position: relative;
+      }
+
+      .full__note:hover {
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+      }
+
+      .full__note > * {
+        margin-block: 1rem;
+      }
+
+      .full__note h2 {
+        margin-bottom: 15px;
+        color: #fff;
+        font-size: 1.5rem;
+        border-bottom: 2px solid #444;
+        padding-bottom: 10px;
+      }
+
+      .tags {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .tag {
+        display: inline-block;
+        background-color: #444;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.9em;
+        color: #e0e0e0;
+        font-weight: 500;
+        transition: background-color 0.3s ease;
+      }
+
+      .tag:hover {
+        background-color: #555;
+      }
+
+      .pip-btn {
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        top: 0;
+        right: 0;
+        margin: 0.8rem;
+      }
+
+      .pip-btn:hover {
+        background-color: #0056b3;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+      }
+
+      .pip-btn svg {
+        width: 20px;
+        height: 20px;
+        fill: #fff;
+      }
+
+      /* New styles for lists and checkboxes */
+      .full__note ul {
+        list-style-type: none;
+        padding-left: 0;
+      }
+
+      .full__note li {
+        position: relative;
+        padding-left: 30px;
+        margin-bottom: 10px;
+      }
+
+      .full__note li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 2px;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #007bff;
+        border-radius: 4px;
+        background-color: #2a2a2a;
+        transition: all 0.3s ease;
+      }
+
+      .full__note li.checked::before {
+        background-color: #007bff;
+      }
+
+      .full__note li.checked::after {
+        content: "✓";
+        position: absolute;
+        left: 5px;
+        top: 1px;
+        color: #fff;
+        font-size: 14px;
+      }
+
+      /* Scrollbar Styling */
+      ::-webkit-scrollbar {
+        width: 10px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: #1a1a1a;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: #444;
+        border-radius: 5px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="notes__list">{{ notesList }}</div>
+    <div class="full__note__list">{{ fullNoteList }}</div>
+
+    <script>
+      // Check if Picture-in-Picture is supported
+      const pipBtns = document.querySelectorAll(".pip-btn");
+      pipBtns.forEach((btn) => {
+        btn.addEventListener("click", pipRequest);
+      });
+
+      async function pipRequest(event) {
+        const id = event.target.closest(".pip-btn").attributes["data-id"].value;
+        const note = document.getElementById(id);
+        const pipWindow = await documentPictureInPicture.requestWindow();
+
+        // Clone the styles and append them to the PiP window
+        const styles = document.getElementById("appStyles").cloneNode(true);
+        pipWindow.document.head.appendChild(styles);
+
+        // Create a container for the note in the PiP window
+        const container = pipWindow.document.createElement("div");
+        container.className = "full__note__list";
+        container.style.height = "100%";
+        container.style.overflow = "auto";
+        container.appendChild(note.cloneNode(true));
+
+        // Hide the PiP button in the PiP window
+        const pipBtn = container.querySelector(".pip-btn");
+        if (pipBtn) {
+          pipBtn.style.display = "none";
+        }
+
+        pipWindow.document.body.appendChild(container);
+
+        pipWindow.addEventListener("pagehide", (event) => {
+          const fullNoteList = document.querySelector(".full__note__list");
+          const pipPlayer = document.getElementById(id);
+          fullNoteList.appendChild(pipPlayer);
+        });
+      }
+    </script>
+  </body>
+</html>
